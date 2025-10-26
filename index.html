@@ -6,7 +6,7 @@
     <title>Tickets Odoo - Chatwoot</title>
     <link rel="stylesheet" href="./style.css" />
 
-    <!-- React puro + Babel para JSX -->
+    <!-- React + Babel para rodar sem build -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -20,6 +20,7 @@
       async function getTickets(email) {
         const API_URL = "https://chatwoot-odoo-backend.onrender.com/api/tickets";
         try {
+          console.log("[API] Buscando tickets para:", email);
           const res = await fetch(API_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -35,7 +36,9 @@
 
       // ==================== COMPONENTE ====================
       function TicketsOdoo({ tickets }) {
-        if (!tickets.length) return <p>Nenhum ticket encontrado.</p>;
+        if (!tickets.length)
+          return <p style={{ opacity: 0.7 }}>Nenhum ticket encontrado.</p>;
+
         return (
           <table>
             <thead>
@@ -77,7 +80,14 @@
         }
 
         function ordenarTickets(lista) {
-          const prioridade = { "Open": 1, "New": 1, "Em andamento": 1, "Solved": 2, "Cancelado": 3, "Cancelled": 3 };
+          const prioridade = {
+            Open: 1,
+            New: 1,
+            "Em andamento": 1,
+            Solved: 2,
+            Cancelado: 3,
+            Cancelled: 3,
+          };
           return [...lista].sort((a, b) => {
             const pa = prioridade[a.status] || 99;
             const pb = prioridade[b.status] || 99;
@@ -86,43 +96,52 @@
           });
         }
 
-        // Recebe email do Chatwoot via postMessage
+        // recebe o email do Chatwoot via postMessage
         React.useEffect(() => {
-function handleMessage(event) {
-  try {
-    console.log("[DEBUG] Mensagem recebida do Chatwoot:", event.data);
+          function handleMessage(event) {
+            try {
+              console.log("[DEBUG] Mensagem do Chatwoot:", event.data);
 
-    // O Chatwoot envia strings como "chatwoot:ready" e objetos JSON
-    if (typeof event.data === "string") {
-      // Ignora mensagens que não são JSON
-      if (!event.data.startsWith("{")) return;
-      event.data = JSON.parse(event.data);
-    }
+              // Ignora mensagens não JSON (ex: "chatwoot:ready")
+              if (typeof event.data === "string" && !event.data.startsWith("{"))
+                return;
 
-    const mail = event.data?.data?.contact?.email;
-    if (mail && mail !== email) {
-      console.log("[Chatwoot] Email detectado:", mail);
-      setEmail(mail);
-      carregarTickets(mail);
-    }
-  } catch (err) {
-    console.error("Erro ao processar payload do Chatwoot:", err);
-  }
-}
+              const data =
+                typeof event.data === "string"
+                  ? JSON.parse(event.data)
+                  : event.data;
 
-          // solicita payload ao Chatwoot
+              const mail = data?.data?.contact?.email;
+              if (mail && mail !== email) {
+                console.log("[Chatwoot] Email detectado:", mail);
+                setEmail(mail);
+                carregarTickets(mail);
+              }
+            } catch (err) {
+              console.error("Erro ao processar payload do Chatwoot:", err);
+            }
+          }
+
+          window.addEventListener("message", handleMessage);
+          // solicita ao Chatwoot o payload do contato
           window.parent.postMessage("chatwoot:request-payload", "*");
+
           return () => window.removeEventListener("message", handleMessage);
         }, [email]);
 
         return (
           <div className="container">
             <h2>Tickets do Cliente (Odoo)</h2>
-            <div className="email-info">
-              {email ? <p>Email detectado: <strong>{email}</strong></p> : <p>Aguardando email do Chatwoot...</p>}
-            </div>
 
-            {loading && <p>Carregando...</p>}
+            {email ? (
+              <p style={{ color: "#90caf9" }}>
+                Email detectado: <strong>{email}</strong>
+              </p>
+            ) : (
+              <p style={{ opacity: 0.7 }}>Aguardando email do Chatwoot...</p>
+            )}
+
+            {loading && <p>Carregando tickets...</p>}
             {!loading && <TicketsOdoo tickets={tickets} />}
           </div>
         );
