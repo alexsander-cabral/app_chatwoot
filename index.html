@@ -90,20 +90,18 @@
         React.useEffect(() => {
 function handleMessage(event) {
   try {
-    let data;
-    // Se for JSON, parseia. Se for texto simples, ignora.
-    if (typeof event.data === "string" && event.data.startsWith("{")) {
-      data = JSON.parse(event.data);
-    } else if (typeof event.data === "object") {
-      data = event.data;
-    } else {
-      // ignora mensagens tipo "chatwoot:ready"
-      return;
+    console.log("[DEBUG] Mensagem recebida do Chatwoot:", event.data);
+
+    // O Chatwoot envia strings como "chatwoot:ready" e objetos JSON
+    if (typeof event.data === "string") {
+      // Ignora mensagens que não são JSON
+      if (!event.data.startsWith("{")) return;
+      event.data = JSON.parse(event.data);
     }
 
-    const mail = data?.data?.contact?.email;
+    const mail = event.data?.data?.contact?.email;
     if (mail && mail !== email) {
-      console.log("[Chatwoot] Email recebido:", mail);
+      console.log("[Chatwoot] Email detectado:", mail);
       setEmail(mail);
       carregarTickets(mail);
     }
@@ -111,6 +109,7 @@ function handleMessage(event) {
     console.error("Erro ao processar payload do Chatwoot:", err);
   }
 }
+
           // solicita payload ao Chatwoot
           window.parent.postMessage("chatwoot:request-payload", "*");
           return () => window.removeEventListener("message", handleMessage);
