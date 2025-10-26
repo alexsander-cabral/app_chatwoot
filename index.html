@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Chatwoot Dashboard App</title>
+    <link rel="stylesheet" href="./style.css" />
+
+    <!-- React via CDN -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  </head>
+
+  <body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+      // ================= API =================
+      async function getTickets(email) {
+        const API = "https://seu-backend.com/api/tickets"; // seu endpoint Node
+        try {
+          const res = await fetch(API, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email }),
+          });
+          if (!res.ok) throw new Error(res.statusText);
+          return await res.json();
+        } catch (err) {
+          console.error("Erro ao buscar tickets:", err);
+          return { tickets: [] };
+        }
+      }
+
+      // ================= COMPONENTE TABELA =================
+      function TicketsTable({ tickets }) {
+        return (
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Cliente</th>
+                <th>Título</th>
+                <th>Status</th>
+                <th>Criado em</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tickets.map(t => (
+                <tr key={t.id}>
+                  <td>#{t.id}</td>
+                  <td>{t.cliente}</td>
+                  <td>{t.titulo}</td>
+                  <td>{t.status}</td>
+                  <td>{t.criado_em}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        );
+      }
+
+      // ================= APP =================
+      function App() {
+        const [email, setEmail] = React.useState("");
+        const [tickets, setTickets] = React.useState([]);
+        const [loading, setLoading] = React.useState(false);
+
+        async function carregar(mail) {
+          if (!mail) return;
+          setLoading(true);
+          const data = await getTickets(mail);
+          setTickets(data.tickets || []);
+          setLoading(false);
+        }
+
+        // Recebe dados do Chatwoot
+        React.useEffect(() => {
+          function onMsg(event) {
+            try {
+              const payload = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
+              const mail = payload?.data?.contact?.email;
+              if (mail) {
+                setEmail(mail);
+                carregar(mail);
+              }
+            } catch (e) {}
+          }
+          window.addEventListener("message", onMsg);
+          // pede os dados do Chatwoot
+          window.parent.postMessage("chatwoot:request-payload", "*");
+          return () => window.removeEventListener("message", onMsg);
+        }, []);
+
+        return (
+          <div className="container">
+            <h2>Tickets do Cliente</h2>
+            <div className="controls">
+              <input
+                type="email"
+                value={email}
+                placeholder="Email do cliente"
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              <button onClick={() => carregar(email)}>Buscar</button>
+            </div>
+            {loading && <p>Carregando...</p>}
+            {!loading && !!tickets.length && <TicketsTable tickets={tickets} />}
+            {!loading && !tickets.length && <p>Nenhum ticket encontrado.</p>}
+          </div>
+        );
+      }
+
+      const root = ReactDOM.createRoot(document.getElementById("root"));
+      root.render(<App />);
+    </script>
+  </body>
+</html>
