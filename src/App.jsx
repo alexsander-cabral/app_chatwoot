@@ -54,7 +54,9 @@ export default function App() {
     };
 
     window.addEventListener("message", onMsg);
-    try { window.parent?.postMessage(JSON.stringify({ type: "READY" }), "*"); } catch {}
+    try {
+      window.parent?.postMessage(JSON.stringify({ type: "READY" }), "*");
+    } catch {}
 
     return () => window.removeEventListener("message", onMsg);
   }, []);
