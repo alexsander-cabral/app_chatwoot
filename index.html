@@ -19,7 +19,7 @@
       // ==================== API ====================
       async function getTickets(email) {
         try {
-          const res = await fetch("https://seu-backend.com/api/tickets", {
+          const res = await fetch("https://chatwoot-odoo-backend.onrender.com/api/tickets", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email }),
