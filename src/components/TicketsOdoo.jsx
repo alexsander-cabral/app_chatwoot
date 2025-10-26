@@ -1,5 +1,5 @@
 export default function TicketsOdoo({ tickets }) {
-  // Define cor de cada status
+  // Badge de status
   const statusBadge = (status) => {
     const map = {
       Novo: { color: "#0ea5e9", bg: "#e0f2fe" },
@@ -24,6 +24,10 @@ export default function TicketsOdoo({ tickets }) {
     );
   };
 
+  // Gera link para o modo edição no Odoo
+  const odooLink = (id) =>
+    `https://erp.hubseven.solutions/odoo/all-tickets/${id}?view_type=form`;
+
   return (
     <table>
       <thead>
@@ -39,7 +43,20 @@ export default function TicketsOdoo({ tickets }) {
         {tickets.map((t) => (
           <tr key={t.id}>
             <td>#{t.referencia}</td>
-            <td>{t.titulo}</td>
+            <td>
+              <a
+                href={odooLink(t.id)}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  color: "#1f93ff",
+                  textDecoration: "none",
+                  fontWeight: 500,
+                }}
+              >
+                {t.titulo}
+              </a>
+            </td>
             <td>{statusBadge(t.status)}</td>
             <td>{t.criado_em}</td>
             <td>{t.cliente}</td>
