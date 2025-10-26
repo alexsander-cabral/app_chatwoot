@@ -3,10 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Chatwoot Dashboard App</title>
+    <title>Tickets Odoo - Chatwoot</title>
     <link rel="stylesheet" href="./style.css" />
 
-    <!-- React via CDN -->
+    <!-- React puro + Babel para JSX -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -16,25 +16,25 @@
     <div id="root"></div>
 
     <script type="text/babel">
-      // ================= API =================
+      // ==================== API ====================
       async function getTickets(email) {
-        const API = "https://seu-backend.com/api/tickets"; // seu endpoint Node
         try {
-          const res = await fetch(API, {
+          const res = await fetch("https://seu-backend.com/api/tickets", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email }),
           });
-          if (!res.ok) throw new Error(res.statusText);
+          if (!res.ok) throw new Error(await res.text());
           return await res.json();
-        } catch (err) {
-          console.error("Erro ao buscar tickets:", err);
+        } catch (e) {
+          console.error("Erro ao buscar tickets:", e);
           return { tickets: [] };
         }
       }
 
-      // ================= COMPONENTE TABELA =================
-      function TicketsTable({ tickets }) {
+      // ==================== COMPONENTE ====================
+      function TicketsOdoo({ tickets }) {
+        if (!tickets.length) return <p>Nenhum ticket encontrado.</p>;
         return (
           <table>
             <thead>
@@ -47,7 +47,7 @@
               </tr>
             </thead>
             <tbody>
-              {tickets.map(t => (
+              {tickets.map((t) => (
                 <tr key={t.id}>
                   <td>#{t.id}</td>
                   <td>{t.cliente}</td>
@@ -61,53 +61,60 @@
         );
       }
 
-      // ================= APP =================
+      // ==================== APP PRINCIPAL ====================
       function App() {
         const [email, setEmail] = React.useState("");
         const [tickets, setTickets] = React.useState([]);
         const [loading, setLoading] = React.useState(false);
 
-        async function carregar(mail) {
+        async function carregarTickets(mail) {
           if (!mail) return;
           setLoading(true);
           const data = await getTickets(mail);
-          setTickets(data.tickets || []);
+          setTickets(ordenarTickets(data.tickets || []));
           setLoading(false);
         }
 
-        // Recebe dados do Chatwoot
+        function ordenarTickets(lista) {
+          const prioridade = { "Open": 1, "New": 1, "Em andamento": 1, "Solved": 2, "Cancelado": 3, "Cancelled": 3 };
+          return [...lista].sort((a, b) => {
+            const pa = prioridade[a.status] || 99;
+            const pb = prioridade[b.status] || 99;
+            if (pa !== pb) return pa - pb;
+            return new Date(b.criado_em) - new Date(a.criado_em);
+          });
+        }
+
+        // Recebe email do Chatwoot via postMessage
         React.useEffect(() => {
-          function onMsg(event) {
+          function handleMessage(event) {
             try {
-              const payload = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
-              const mail = payload?.data?.contact?.email;
-              if (mail) {
+              const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
+              const mail = data?.data?.contact?.email;
+              if (mail && mail !== email) {
                 setEmail(mail);
-                carregar(mail);
+                carregarTickets(mail);
               }
-            } catch (e) {}
+            } catch (err) {
+              console.error("Erro ao processar payload do Chatwoot:", err);
+            }
           }
-          window.addEventListener("message", onMsg);
-          // pede os dados do Chatwoot
+
+          window.addEventListener("message", handleMessage);
+          // solicita payload ao Chatwoot
           window.parent.postMessage("chatwoot:request-payload", "*");
-          return () => window.removeEventListener("message", onMsg);
-        }, []);
+          return () => window.removeEventListener("message", handleMessage);
+        }, [email]);
 
         return (
           <div className="container">
-            <h2>Tickets do Cliente</h2>
-            <div className="controls">
-              <input
-                type="email"
-                value={email}
-                placeholder="Email do cliente"
-                onChange={(e) => setEmail(e.target.value)}
-              />
-              <button onClick={() => carregar(email)}>Buscar</button>
+            <h2>Tickets do Cliente (Odoo)</h2>
+            <div className="email-info">
+              {email ? <p>Email detectado: <strong>{email}</strong></p> : <p>Aguardando email do Chatwoot...</p>}
             </div>
+
             {loading && <p>Carregando...</p>}
-            {!loading && !!tickets.length && <TicketsTable tickets={tickets} />}
-            {!loading && !tickets.length && <p>Nenhum ticket encontrado.</p>}
+            {!loading && <TicketsOdoo tickets={tickets} />}
           </div>
         );
       }
