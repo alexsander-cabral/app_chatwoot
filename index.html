@@ -18,8 +18,9 @@
     <script type="text/babel">
       // ==================== API ====================
       async function getTickets(email) {
+        const API_URL = "https://chatwoot-odoo-backend.onrender.com/api/tickets";
         try {
-          const res = await fetch("https://chatwoot-odoo-backend.onrender.com/api/tickets", {
+          const res = await fetch(API_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email }),
@@ -92,6 +93,7 @@
               const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
               const mail = data?.data?.contact?.email;
               if (mail && mail !== email) {
+                console.log("[Chatwoot] Email recebido:", mail);
                 setEmail(mail);
                 carregarTickets(mail);
               }
