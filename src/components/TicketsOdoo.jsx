@@ -1,9 +1,34 @@
 export default function TicketsOdoo({ tickets }) {
+  // Define cor de cada status
+  const statusBadge = (status) => {
+    const map = {
+      Novo: { color: "#0ea5e9", bg: "#e0f2fe" },
+      "Em andamento": { color: "#f59e0b", bg: "#fef3c7" },
+      Resolvido: { color: "#10b981", bg: "#d1fae5" },
+      Cancelado: { color: "#9ca3af", bg: "#f3f4f6" },
+    };
+    const s = map[status] || { color: "#6b7280", bg: "#f3f4f6" };
+    return (
+      <span
+        style={{
+          backgroundColor: s.bg,
+          color: s.color,
+          borderRadius: "9999px",
+          padding: "4px 10px",
+          fontSize: "0.8rem",
+          fontWeight: 500,
+        }}
+      >
+        {status}
+      </span>
+    );
+  };
+
   return (
     <table>
       <thead>
         <tr>
-          <th>ID</th>
+          <th>Referência</th>
           <th>Título</th>
           <th>Status</th>
           <th>Criado em</th>
@@ -11,11 +36,11 @@ export default function TicketsOdoo({ tickets }) {
         </tr>
       </thead>
       <tbody>
-        {tickets.map(t => (
+        {tickets.map((t) => (
           <tr key={t.id}>
-            <td>{t.id}</td>
+            <td>#{t.referencia}</td>
             <td>{t.titulo}</td>
-            <td>{t.status}</td>
+            <td>{statusBadge(t.status)}</td>
             <td>{t.criado_em}</td>
             <td>{t.cliente}</td>
           </tr>

@@ -10,7 +10,7 @@ export default function App() {
   const loadedOnce = useRef(false);
 
   const ordenar = (lista) => {
-    const rank = { New: 1, "Em andamento": 1, Open: 1, Solved: 2, Cancelled: 3 };
+    const rank = { Novo: 1, "Em andamento": 1, Resolvido: 2, Cancelado: 3 };
     return [...lista].sort((a, b) => {
       const ra = rank[a.status] ?? 99;
       const rb = rank[b.status] ?? 99;
@@ -64,7 +64,6 @@ export default function App() {
   return (
     <div className="container">
       <h2>Tickets do Cliente</h2>
-
       {email && (
         <div className="email-badge">
           <span>{email}</span>
