@@ -98,29 +98,30 @@
 
         // recebe o email do Chatwoot via postMessage
         React.useEffect(() => {
-          function handleMessage(event) {
-            try {
-              console.log("[DEBUG] Mensagem do Chatwoot:", event.data);
+function handleMessage(event) {
+  try {
+    let data;
+    // Se for JSON, parseia. Se for texto simples, ignora.
+    if (typeof event.data === "string" && event.data.startsWith("{")) {
+      data = JSON.parse(event.data);
+    } else if (typeof event.data === "object") {
+      data = event.data;
+    } else {
+      // ignora mensagens tipo "chatwoot:ready"
+      return;
+    }
 
-              // Ignora mensagens não JSON (ex: "chatwoot:ready")
-              if (typeof event.data === "string" && !event.data.startsWith("{"))
-                return;
+    const mail = data?.data?.contact?.email;
+    if (mail && mail !== email) {
+      console.log("[Chatwoot] Email recebido:", mail);
+      setEmail(mail);
+      carregarTickets(mail);
+    }
+  } catch (err) {
+    console.error("Erro ao processar payload do Chatwoot:", err);
+  }
+}
 
-              const data =
-                typeof event.data === "string"
-                  ? JSON.parse(event.data)
-                  : event.data;
-
-              const mail = data?.data?.contact?.email;
-              if (mail && mail !== email) {
-                console.log("[Chatwoot] Email detectado:", mail);
-                setEmail(mail);
-                carregarTickets(mail);
-              }
-            } catch (err) {
-              console.error("Erro ao processar payload do Chatwoot:", err);
-            }
-          }
 
           window.addEventListener("message", handleMessage);
           // solicita ao Chatwoot o payload do contato
