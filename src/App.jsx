@@ -4,12 +4,11 @@ import TicketsOdoo from "./components/TicketsOdoo";
 import "./App.css";
 
 export default function App() {
-  const [email, setEmail] = useState("");           // definido pelo Chatwoot ou manual
+  const [email, setEmail] = useState("");
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(false);
   const loadedOnce = useRef(false);
 
-  // prioridade: Abertos > Solved > Cancelled. Dentro do mesmo status: mais novo primeiro.
   const ordenar = (lista) => {
     const rank = { New: 1, "Em andamento": 1, Open: 1, Solved: 2, Cancelled: 3 };
     return [...lista].sort((a, b) => {
@@ -34,14 +33,11 @@ export default function App() {
     }
   };
 
-  // Integração Chatwoot Dashboard Apps
   useEffect(() => {
     if (loadedOnce.current) return;
     loadedOnce.current = true;
 
     const onMsg = (event) => {
-      // Aceita apenas mensagens do Chatwoot
-      // Em produção, se quiser, restrinja por origin com uma whitelist.
       try {
         const payload = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
         const mail =
@@ -54,37 +50,28 @@ export default function App() {
           setEmail(mail);
           carregar(mail);
         }
-      } catch {
-        // mensagens que não são JSON podem ser ignoradas
-      }
+      } catch {}
     };
 
     window.addEventListener("message", onMsg);
-    // sinaliza que a app está pronta
     try { window.parent?.postMessage(JSON.stringify({ type: "READY" }), "*"); } catch {}
 
     return () => window.removeEventListener("message", onMsg);
   }, []);
 
-  // Campo manual para testes fora do Chatwoot
   return (
     <div className="container">
       <h2>Tickets do Cliente</h2>
 
-      <div className="toolbar">
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="e-mail do cliente"
-        />
-        <button onClick={() => carregar(email)}>Buscar</button>
-      </div>
+      {email && (
+        <div className="email-badge">
+          <span>{email}</span>
+        </div>
+      )}
 
       {loading && <p>Carregando…</p>}
       {!loading && !tickets.length && email && <p>Sem tickets para {email}.</p>}
-      {!loading && !email && <p>Informe um e-mail ou abra dentro do Chatwoot.</p>}
-
+      {!loading && !email && <p>Aguardando e-mail do Chatwoot…</p>}
       {!loading && tickets.length > 0 && <TicketsOdoo tickets={tickets} />}
     </div>
   );
